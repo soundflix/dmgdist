@@ -31,6 +31,9 @@ struct DMGDist: ParsableCommand {
     @Flag(inversion: .prefixedNo, help: "Enable/disable using the modern notarytool for submission instead of the legacy altool")
     var useNotaryTool = true
 
+    @Flag(help: "Save DMG file to current working directory. Default is a system temporary directory.")
+    var current = false
+    
     @Option(help: "A notarization request id. If provided, the script will skip creating the DMG and uploading it for notarization and just keep checking for the notarization status.")
     var checkRequestId: String?
 
@@ -67,7 +70,7 @@ struct DMGDist: ParsableCommand {
             throw Failure("The input app doesn't exist at \(appFileURL.path)")
         }
 
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
+        var tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("DMGDist-" + sanitizedAppName + "-\(Date().timeIntervalSince1970)")
 
         if !FileManager.default.fileExists(atPath: tempDir.path) {
@@ -118,6 +121,13 @@ struct DMGDist: ParsableCommand {
             throw Failure("Couldn't find output DMG in temporary directory")
         }
 
+        if current {
+            let currentPath = try shellOut(to: "pwd")
+//            currentPath = currentPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)! // tried to use parentheses (), bad idea..
+            tempDir = URL(fileURLWithPath: currentPath)
+            print("Moving output DMG to current working directory (pwd): \(tempDir.path)")
+        }
+        
         let outputDMGURL = tempDir
             .appendingPathComponent(outputDMGName)
             .appendingPathExtension("dmg")
