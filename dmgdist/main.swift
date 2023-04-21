@@ -256,11 +256,12 @@ struct DMGDist: ParsableCommand {
         let dmgURL = try prepareDMG()
         
         if useNotaryTool {
-            if verbose {
-                print("Running notarytool")
-            }
             
-            // xcrun notarytool submit Package.dmg --keychain-profile "NOTARYTOOLRAMBO" --wait
+            if #available(macOS 11, *) {
+                if verbose {
+                    print("Running notarytool")
+                }
+                // xcrun notarytool submit Package.dmg --keychain-profile "NOTARYTOOLRAMBO" --wait
             try shellOut(
                 to: "xcrun",
                 arguments: [
@@ -270,6 +271,17 @@ struct DMGDist: ParsableCommand {
                     "--wait"
                 ]
             )
+            } else {
+                print("Running notarytool without 'xcrun' (legacy macOS, install notarytool to an executable path first)")
+                try shellOut(
+                    to: "notarytool",
+                    arguments: [
+                        "submit", "\"\(dmgURL.path)\"",
+                        "--keychain-profile", "\"\(ascPassword)\"",
+                        "--wait"
+                    ]
+                )
+            }
             
             try stapleDMG(at: dmgURL)
         } else {
